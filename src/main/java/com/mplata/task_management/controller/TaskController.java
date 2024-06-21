@@ -20,11 +20,6 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @GetMapping("/sayHello")
-    public String sayHello() {
-        return "Hello from API Task";
-    }
-
     @GetMapping()
     public ResponseEntity<List<TaskDTO>> findAll() {
         return ResponseEntity.ok(taskService.findAll());

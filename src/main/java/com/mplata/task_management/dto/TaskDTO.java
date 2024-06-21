@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TaskDTO {
     private Long id;
-    @NotNull(message = "")
-    @NotBlank
+    @NotBlank(message = "The title cannot be blank.")
+    @NotNull(message = "The title cannot be null.")
     private String title;
     private String description;
     private boolean completed;
