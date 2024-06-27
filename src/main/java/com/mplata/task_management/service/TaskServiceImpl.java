@@ -2,10 +2,14 @@ package com.mplata.task_management.service;
 
 import com.mplata.task_management.dto.TaskDTO;
 import com.mplata.task_management.entity.Task;
+import com.mplata.task_management.entity.User;
 import com.mplata.task_management.repository.TaskRepository;
+import com.mplata.task_management.repository.UserRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -14,18 +18,12 @@ import java.util.stream.Collectors;
 public class TaskServiceImpl implements TaskService{
 
     private final TaskRepository taskRepository;
-
-    public TaskServiceImpl(TaskRepository taskRepository) {
+    private final EmailService emailService;
+    private final UserRepository userRepository;
+    public TaskServiceImpl(TaskRepository taskRepository, EmailService emailService, UserRepository userRepository) {
         this.taskRepository = taskRepository;
-    }
-
-    @Override
-    public List<TaskDTO> findAll() {
-        ModelMapper modelMapper = new ModelMapper();
-        return this.taskRepository.findAll()
-                .stream()
-                .map(task -> modelMapper.map(task, TaskDTO.class))
-                .collect(Collectors.toList());
+        this.emailService = emailService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -80,4 +78,70 @@ public class TaskServiceImpl implements TaskService{
         }
         return "The user with ID:"+id +" does not exist";
     }
+
+    @Override
+    public TaskDTO createTaskUser(Long id, TaskDTO taskDTO) {
+        Optional<User> user = userRepository.findById(id);
+        if (user.isPresent()) {
+            Task task = Task.builder()
+                    .title(taskDTO.getTitle())
+                    .description(taskDTO.getDescription())
+                    .user(user.get())
+                    .completed(taskDTO.isCompleted())
+                    .build();
+            this.taskRepository.save(task);
+            ModelMapper modelMapper = new ModelMapper();
+            return modelMapper.map(task, TaskDTO.class);
+        } else {
+            throw new UnsupportedOperationException("The user does not exist");
+        }
+    }
+
+    @Override
+    public List<TaskDTO> getTaskForUser(String username) {
+       User user = userRepository.findByEmail(username).get();
+       if(user.getId() != null) {
+           ModelMapper modelMapper = new ModelMapper();
+           return this.taskRepository.findByUser(user)
+            .stream()
+            .map(task -> modelMapper.map(task, TaskDTO.class))
+            .collect(Collectors.toList());
+       } else {
+        return Collections.emptyList();
+       }
+
+    }
+
+
+    @Override
+    public TaskDTO saveTask(TaskDTO taskDto, Long id) {
+        Optional<User> user = userRepository.findById(id);
+        if (user.isPresent()) {
+            Task task = Task.builder()
+                    .title(taskDto.getTitle())
+                    .description(taskDto.getDescription())
+                    .user(user.get())
+                    .completed(taskDto.isCompleted())
+                    .build();
+            this.taskRepository.save(task);
+            ModelMapper modelMapper = new ModelMapper();
+            return modelMapper.map(task, TaskDTO.class);
+        } else {
+            throw new UnsupportedOperationException("The user does not exist");
+        }
+    }
+
+
+    @Override
+    public boolean deleteTask(Long taskId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail).get();
+        Optional<Task> task = taskRepository.findById(taskId); 
+        if(task.isPresent() && task.get().getUser().equals(user)) {
+            taskRepository.delete(task.get());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 }
